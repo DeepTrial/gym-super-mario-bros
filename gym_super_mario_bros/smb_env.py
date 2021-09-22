@@ -4,7 +4,7 @@ from nes_py import NESEnv
 import numpy as np
 from ._roms import decode_target
 from ._roms import rom_path
-
+from .smb_tile import SMB
 
 # create a dictionary mapping value of status register to string names
 _STATUS_MAP = defaultdict(lambda: 'fireball', {0:'small', 1: 'tall'})
@@ -255,6 +255,24 @@ class SuperMarioBrosEnv(NESEnv):
         """Return a boolean determining if the agent reached a flag."""
         return self._is_world_over or self._is_stage_over
 
+    @property
+    def _enemy_info(self):
+        enemy_dict={}
+        enemy_obj_list=SMB.get_enemy_locations(self.ram)
+        for enemy_obj in enemy_obj_list:
+            etype=enemy_obj.type
+            elocation=enemy_obj.location
+            if etype in enemy_dict.keys():
+                enemy_dict[etype].append(elocation)
+            else:
+                enemy_dict[etype]=[elocation]
+        return enemy_dict
+    
+    @property
+    def _game_tile(self):
+        return SMB.get_tiles(self.ram)
+
+
     # MARK: RAM Hacks
 
     def _write_stage(self):
@@ -415,6 +433,8 @@ class SuperMarioBrosEnv(NESEnv):
             world=self._world,
             x_pos=self._x_position,
             y_pos=self._y_position,
+            x_relative_pos=self._left_x_position,
+            tile=self._game_tile
         )
 
 

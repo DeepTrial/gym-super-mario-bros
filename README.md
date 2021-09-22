@@ -45,6 +45,8 @@ for the `nes_py.wrappers.JoypadSpace` wrapper. See
 [gym_super_mario_bros/actions.py](gym_super_mario_bros/actions.py) for a
 breakdown of the legal actions in each of these three lists.
 
+- without tile:
+
 ```python
 from nes_py.wrappers import JoypadSpace
 import gym_super_mario_bros
@@ -61,6 +63,69 @@ for step in range(5000):
 
 env.close()
 ```
+
+- with tile
+
+```python
+from nes_py.wrappers import JoypadSpace
+import gym_super_mario_bros
+from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
+from enum import Enum, unique
+import numpy as np
+
+env = gym_super_mario_bros.make('SuperMarioBros-v0')
+env = JoypadSpace(env, SIMPLE_MOVEMENT)
+
+# color for different entity
+class ColorMap(Enum):
+    Empty = (255, 255, 255)   # White
+    Ground = (128, 43, 0)     # Brown
+    Fake = (128, 43, 0)
+    Mario = (0, 0, 255)
+    Goomba = (255, 0, 20)
+    Top_Pipe1 = (0, 15, 21)  # Dark Green
+    Top_Pipe2 = (0, 15, 21)  # Dark Green
+    Bottom_Pipe1 = (5, 179, 34)  # Light Green
+    Bottom_Pipe2 = (5, 179, 34)  # Light Green
+    Coin_Block1 = (219, 202, 18)  # Gold
+    Coin_Block2 = (219, 202, 18)  # Gold
+    Breakable_Block = (79, 70, 25)  # Brownish
+
+    Generic_Enemy = (255, 0, 20)  # Red
+    Generic_Static_Tile = (128, 43, 0) 
+    Generic_Dynamic_Tile = (79, 70, 25)
+
+# convert tile grid to image mask
+def tile_to_mask(tile):
+    mask=np.zeros((240,256,3))
+
+    for coord in tile.keys():
+        x,y=coord
+        label=tile[coord]
+        rgb = list(ColorMap[label.name].value)
+
+        mask[x*16:(x+1)*16,y*16:(y+1)*16]=rgb
+    mask=mask.astype(np.uint8)
+    return mask
+
+done = True
+step_count=0
+for step in range(5000):
+    if done:
+        state = env.reset()
+    state, reward, done, info = env.step(env.action_space.sample())
+		
+    tile=info['tile']
+    mask=tile_to_mask(tile)
+    #you can use matplotlib or opencv to show the mask
+    
+    env.render()
+    step_count+=1
+
+env.close()
+```
+
+
 
 **NOTE:** `gym_super_mario_bros.make` is just an alias to `gym.make` for
 convenience.
@@ -177,18 +242,20 @@ The reward is clipped into the range _(-15, 15)_.
 The `info` dictionary returned by the `step` method contains the following
 keys:
 
-| Key        | Type   | Description
+| Key        | Type   | Description|
 |:-----------|:-------|:------------------------------------------------------|
-| `coins   ` | `int`  | The number of collected coins
-| `flag_get` | `bool` | True if Mario reached a flag or ax
-| `life`     | `int`  | The number of lives left, i.e., _{3, 2, 1}_
-| `score`    | `int`  | The cumulative in-game score
-| `stage`    | `int`  | The current stage, i.e., _{1, ..., 4}_
-| `status`   | `str`  | Mario's status, i.e., _{'small', 'tall', 'fireball'}_
-| `time`     | `int`  | The time left on the clock
-| `world`    | `int`  | The current world, i.e., _{1, ..., 8}_
-| `x_pos`    | `int`  | Mario's _x_ position in the stage (from the left)
-| `y_pos`    | `int`  | Mario's _y_ position in the stage (from the bottom)
+| `coins   ` | `int`  | The number of collected coins|
+| `flag_get` | `bool` | True if Mario reached a flag or ax|
+| `life`     | `int`  | The number of lives left, i.e., _{3, 2, 1}_|
+| `score`    | `int`  | The cumulative in-game score|
+| `stage`    | `int`  | The current stage, i.e., _{1, ..., 4}_|
+| `status`   | `str`  | Mario's status, i.e., _{'small', 'tall', 'fireball'}_|
+| `time`     | `int`  | The time left on the clock|
+| `world`    | `int`  | The current world, i.e., _{1, ..., 8}_|
+| `x_pos`    | `int`  | Mario's _x_ position in the stage (from the left)|
+| `y_pos`    | `int`  | Mario's _y_ position in the stage (from the bottom)|
+| `x_relative_pos` | `int` | Mario's _x_ position in the screen (from the left) |
+| `tile` | `object` | Tile grid for current screen |
 
 ## Citation
 
