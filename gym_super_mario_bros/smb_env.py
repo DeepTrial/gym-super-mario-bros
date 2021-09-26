@@ -4,7 +4,7 @@ from nes_py import NESEnv
 import numpy as np
 from ._roms import decode_target
 from ._roms import rom_path
-from .smb_tile import SMB
+from .smb_tile import SuperMarioBrosTile
 
 # create a dictionary mapping value of status register to string names
 _STATUS_MAP = defaultdict(lambda: 'fireball', {0:'small', 1: 'tall'})
@@ -50,6 +50,7 @@ class SuperMarioBrosEnv(NESEnv):
         rom = rom_path(lost_levels, rom_mode)
         # initialize the super object with the ROM path
         super(SuperMarioBrosEnv, self).__init__(rom)
+        self.tile_maker=SuperMarioBrosTile(self.ram)
         # set the target world, stage, and area variables
         target = decode_target(target, lost_levels)
         self._target_world, self._target_stage, self._target_area = target
@@ -256,21 +257,9 @@ class SuperMarioBrosEnv(NESEnv):
         return self._is_world_over or self._is_stage_over
 
     @property
-    def _enemy_info(self):
-        enemy_dict={}
-        enemy_obj_list=SMB.get_enemy_locations(self.ram)
-        for enemy_obj in enemy_obj_list:
-            etype=enemy_obj.type
-            elocation=enemy_obj.location
-            if etype in enemy_dict.keys():
-                enemy_dict[etype].append(elocation)
-            else:
-                enemy_dict[etype]=[elocation]
-        return enemy_dict
-    
-    @property
     def _game_tile(self):
-        return SMB.get_tiles(self.ram)
+        self.tile_maker.update_info(self._left_x_position,self._y_position,self._x_position)
+        return self.tile_maker.get_game_tiles()
 
 
     # MARK: RAM Hacks
