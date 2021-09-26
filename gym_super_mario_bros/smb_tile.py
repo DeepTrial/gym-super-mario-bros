@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum, unique
 
 
-
+_BLOCK_TYPE={"Empty": 0}
 
 
 @unique
@@ -121,7 +121,7 @@ class Enemy(object):
 
 
 
-class SMB(object):
+class SuperMarioBrosTile():
     # SMB can only load 5 enemies to the screen at a time.
     # Because of that we only need to check 5 enemy locations
     MAX_NUM_ENEMIES = 5
@@ -138,6 +138,72 @@ class SMB(object):
 
     xbins = list(range(16, resolution.width, 16))
     ybins = list(range(16, resolution.height, 16))
+
+
+    def __init__(self,ram):
+        self.ram=ram
+        self._relative_mario_location_x=-1
+        self._mario_location_y=-1
+        self._absolute_mario_location_x=-1
+
+    def update_info(self):
+        pass
+
+    @classmethod
+    def get_game_tiles():
+        pass
+
+    def _search_ram(self,x,y,group_not_empty=False):
+        page = (x // 256) % 2
+        sub_x = (x % 256) // 16
+        sub_y = (y - 32) // 16
+
+        if sub_y not in range(13):
+            return "Empty"
+
+        addr = 0x500 + page*208 + sub_y*16 + sub_x
+        if group_not_empty:
+            if self.ram[addr] != 0:
+                return "Fake"
+
+        return self.ram[addr]
+
+    def _draw_game_tile(self):
+        step=16
+
+        # init the tile
+        game_tile=np.zeros((240,256))
+
+        # get mario location
+        mario_location = None
+
+        # get enemy location
+        enemies_location=None
+
+        # draw tile
+        for coord_x in range(0,240,step):
+            for coord_y in range(0,256,step):
+                patch_type=self._search_ram(coord_x,coord_y)
+
+                # PPU is there, so no tile is there
+                if coord_y//16 < 2:
+                    game_tile[coord_x*step:(coord_x+1)*step,coord_y*step:(coord_y+1)*step] =  "empty"
+                else:
+
+                    try:
+                        game_tile[coord_x*step:(coord_x+1)*step,coord_y*step:(coord_y+1)*step] = Lookup(patch_type)
+                    except:
+                        game_tile[coord_x*step:(coord_x+1)*step,coord_y*step:(coord_y+1)*step] = "Fake"
+                    for enemy in enemies_location:
+                        ex = enemy.location.x
+                        ey = enemy.location.y + 8
+                        # Since we can only discriminate within 8 pixels, if it falls within this bound, count it as there
+                        if abs(coord_x - ex) <=8 and abs(coord_y - ey) <=8:
+                            game_tile[coord_x*step:(coord_x+1)*step,coord_y*step:(coord_y+1)*step] = "Enemy"
+
+
+        game_tile[self._relative_mario_location_x*step:(self._relative_mario_location_x+1)*step,self._mario_location_y*step:(self._mario_location_y+1)*step]="Mario"
+        return game_tile
 
 
     @unique
@@ -307,7 +373,7 @@ class SMB(object):
 
 
     @classmethod
-    def get_tile(cls, x, y, ram, group_non_zero_tiles=False):
+    def get_tile(cls, x, y, ram, group_non_zero_tiles=True):
         page = (x // 256) % 2
         sub_x = (x % 256) // 16
         sub_y = (y - 32) // 16
