@@ -112,13 +112,17 @@ class SuperMarioBrosTile():
         assert self._relative_mario_location_x>0
         assert self._mario_location_y>0
         assert self._absolute_mario_location_x>0
-        
+        mario_y=256-self._mario_location_y+step
+        mario_x=self._relative_mario_location_x
+
         # get enemy location
         enemies_location=self._get_enemy_locations()
 
         # draw static tile
-        for coord_x in range(0,240,step):
-            for coord_y in range(0,256,step):
+        start_x=self._absolute_mario_location_x-self._relative_mario_location_x
+        start_y=0
+        for coord_y in range(start_y,240,step):
+            for coord_x in range(start_x,start_x+256,step):
                 tile_type="Empty"
                 tile_address=self._search_ram(coord_x,coord_y)
 
@@ -126,20 +130,24 @@ class SuperMarioBrosTile():
                 if coord_y//step < 2:
                     tile_type="Empty"
                 else:
-                    tile_type=self._lookup_tile_type(tile_address)
-                game_tile[coord_x*step:(coord_x+1)*step,coord_y*step:(coord_y+1)*step] = _STATIC_LOOKUP_TABLE[tile_type][1]
+                    tile_type=self._lookup_static_tile_type(tile_address)
+                    # if tile_type=='Ground':
+                    #     print(tile_type,coord_x,coord_y)
+                draw_x=coord_x-start_x
+                draw_y=coord_y
+                game_tile[draw_y:(draw_y+step),draw_x:(draw_x+step)] = _STATIC_LOOKUP_TABLE[tile_type][1]
         
         # draw enemy    
         for enemy in enemies_location:
             enemy_id=enemy[0]
             enemy_name=self._lookup_enemy_tile_type(enemy_id)
-            ex = enemy[1]-step//2
-            ey = enemy[2]-step//2
-            
-            game_tile[ex*step:(ex+1)*step,ey*step:(ey+1)*step] = _ENEMY_LOOKUP_TABLE[enemy_name][1]
+            ex = enemy[1]-self._absolute_mario_location_x+self._relative_mario_location_x
+            ey = enemy[2]+step//2
+            game_tile[ey:(ey+step),ex:(ex+step)] = _ENEMY_LOOKUP_TABLE[enemy_name][1]
 
-
-        game_tile[self._relative_mario_location_x*step:(self._relative_mario_location_x+1)*step,self._mario_location_y*step:(self._mario_location_y+1)*step]="Mario"
+       
+        
+        game_tile[mario_y:(mario_y+step),mario_x:(mario_x+step)]=8
         return game_tile
 
 
