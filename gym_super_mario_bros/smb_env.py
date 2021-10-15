@@ -65,6 +65,8 @@ class SuperMarioBrosEnv(NESEnv):
         # create a backup state to restore from on subsequent calls to reset
         self._backup()
 
+        self.last_tile=np.zeros((240,256))
+
     @property
     def is_single_stage_env(self):
         """Return True if this environment is a stage environment."""
@@ -258,8 +260,10 @@ class SuperMarioBrosEnv(NESEnv):
 
     @property
     def _game_tile(self):
-        self.tile_maker.update_info(self._left_x_position,self._y_position,self._x_position)
-        return self.tile_maker.get_game_tiles()
+        self.tile_maker.update_info(self._left_x_position,self._y_position,self._x_position,self.last_tile)
+        current_tile=self.tile_maker.get_game_tiles()
+        self.last_tile=current_tile
+        return current_tile
 
 
     # MARK: RAM Hacks
